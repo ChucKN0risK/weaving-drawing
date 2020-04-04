@@ -1,0 +1,141 @@
+:root {
+  --pixel-size: 25px;
+  --border: solid black 1px;
+}
+
+html {
+  font-family: 'Courier New', Courier, monospace;
+}
+
+body {
+  padding: 32px;
+}
+
+h1 {
+  margin-bottom: 40px;
+}
+
+.row-number {
+  height: var(--pixel-size);
+}
+
+.frame-number {
+  width: var(--pixel-size);
+}
+
+.frame-params {
+  margin-top: 30px;
+  margin-bottom: 40px;
+}
+
+.threading-type,
+.frame-number-value {
+  font-weight: bold;
+}
+
+.weaving {
+  display: grid;
+  grid-template-columns: 60px calc(var(--frame-number) * var(--pixel-size));
+  grid-template-rows: calc(var(--frame-number) * var(--pixel-size)) var(--pixel-size) calc(var(--pixel-size) * var(--drawing-row-number));
+  grid-gap: 20px;
+  grid-template-areas: 
+    "threading-row-numbers generated-threading"
+    ". guide-frame-numbers"
+    "drawing-row-numbers drawing";
+}
+
+.weaving > *:not(.generated-threading):not(.drawing) {
+  border: var(--border);
+}
+
+.threading-row-numbers {
+  grid-area: threading-row-numbers;
+  text-align: center;
+}
+
+.threading-row-numbers > * + *,
+.drawing-row-numbers > * + * {
+  border-top: var(--border);
+}
+
+.generated-threading {
+  display: grid;
+  grid-template-columns: repeat(var(--frame-number), var(--pixel-size));
+  grid-template-rows: repeat(var(--frame-number), var(--pixel-size));
+  grid-area: generated-threading;
+  width: calc(var(--frame-number) * var(--pixel-size));
+  height: calc(var(--frame-number) * var(--pixel-size));
+  border-left: var(--border);
+  border-bottom: var(--border);
+  box-sizing: initial;
+}
+
+.guide-frame-numbers {
+  display: flex;
+  grid-area: guide-frame-numbers;
+  text-align: center;
+}
+
+.guide-frame-numbers > * + * {
+  border-left: var(--border);
+}
+
+.drawing-row-numbers {
+  grid-area: drawing-row-numbers;
+  text-align: center;
+}
+
+.pixel {
+  border: none;
+  border-top: var(--border);
+  border-right: var(--border);
+  background-color: white;
+}
+
+button.pixel:hover {
+  background-color: grey;
+}
+
+.pixel.is-selected {
+  background-color: black;
+}
+
+.drawing {
+  grid-area: drawing;
+  box-sizing: initial;
+}
+
+table {
+  width:100%;
+  grid-area: drawing;
+  border: none;
+  border-collapse: collapse;
+}
+
+tbody {
+  width: 100%;
+  border-left: var(--border);
+  border-bottom: var(--border);
+}
+
+tr {
+  height: var(--pixel-size);
+}
+
+td {
+  position: relative;
+  width: var(--pixel-size);
+  height: var(--pixel-size);
+}
+
+td button {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--pixel-size);
+  height: var(--pixel-size);
+  border: none;
+  background-color: transparent;
+  border-top: var(--border);
+  border-right: var(--border);
+}
