@@ -14,7 +14,6 @@ window.addEventListener('DOMContentLoaded', (event) => {
   var guide_frame_numbers_el = document.querySelector('.js-guide-frame-numbers');
   var threading_row_numbers_el = document.querySelector('.js-threading-row-numbers');
   var drawing_row_numbers_el = document.querySelector('.js-drawing-row-numbers');
-  var drawn_pixels = [];
   var table_body_el = drawing_el.querySelector('tbody');
 
   // Définir le nombre de rangées du dessin
@@ -135,14 +134,6 @@ window.addEventListener('DOMContentLoaded', (event) => {
     });
   }
 
-  var updateDrawing = () => {
-    console.log('update');
-    drawn_pixels.forEach((pixel) => {
-      pixel.el.classList.remove('is-selected');
-      console.log(pixel.el.classList.add('is-selected'));
-    });
-  };
-
   var updateWeaving = (value) => {
     updatePageTitle(value);
     updateGrid(value);
@@ -152,7 +143,6 @@ window.addEventListener('DOMContentLoaded', (event) => {
     createChildren(drawing_row_numbers_el, drawing_row_number, 'row-number');
     createChildren(threading_el, value * value, 'pixel');
     fillDrawingRows(value);
-    // updateDrawing();
     updateChildrenNumber(threading_row_numbers_el, true);
     updateChildrenNumber(drawing_row_numbers_el, true);
     updateChildrenNumber(guide_frame_numbers_el, false);
@@ -174,26 +164,13 @@ window.addEventListener('DOMContentLoaded', (event) => {
     }
   };
 
-  var updateDrawingState = (pixelClicked) => {
-    var pixelIsSelected = drawn_pixels.find(pixel => pixel.el === pixelClicked);
-    if (pixelIsSelected !== undefined) {
-      // ici le pixel (= e.target) sort du tableau stocké dans la variable drawn_pixel
-      drawn_pixels = drawn_pixels.filter((pixel) => {
-        return pixel.el !== pixelClicked;
-      });
-    } else {
-      // dans ces cas là le pixel est placé dans le tableau
-      var pixel = {
-        el: pixelClicked,
-        x: pixelClicked.parentNode.cellIndex + 1,
-        y: drawing_row_number - pixelClicked.parentNode.parentNode.rowIndex,
-      };
-      drawn_pixels.push(pixel);
-    }
-  };
-
   drawing_el.addEventListener('click', (e) => {
-    updateDrawingState(e.target);
     updateDrawingPixelStyle(e.target);
+  });
+
+  drawing_el.addEventListener('mouseover', (e) => {
+    var pixelPositionX = `${e.target.getBoundingClientRect().x - drawing_el.getBoundingClientRect().x}px`;
+    document.documentElement.style.setProperty('--guide-frame-number-position-x', pixelPositionX);
+    console.log(`${e.target.getBoundingClientRect().x - drawing_el.getBoundingClientRect().x}px`);
   });
 });

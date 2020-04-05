@@ -1,6 +1,9 @@
 :root {
   --pixel-size: 25px;
   --border: solid black 1px;
+  --weaving-row-number-width: 60px;
+  --weaving-grid-gap: 20px;
+  --background-frame-number-guide: rgba(68, 134, 154, 0.29);
 }
 
 html {
@@ -13,6 +16,20 @@ body {
 
 h1 {
   margin-bottom: 40px;
+}
+
+.guide-frame-number-style {
+  background-color: var(--background-frame-number-guide);
+  position: absolute;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.guide-frame-number-x {
+  width: var(--pixel-size);
+  height: 100%;
+  left: calc(var(--weaving-row-number-width) + var(--weaving-grid-gap));
+  transform: translateX(var(--guide-frame-number-position-x));
 }
 
 .row-number {
@@ -34,17 +51,19 @@ h1 {
 }
 
 .weaving {
+  position: relative;
   display: grid;
-  grid-template-columns: 60px calc(var(--frame-number) * var(--pixel-size));
+  grid-template-columns: var(--weaving-row-number-width) calc(var(--frame-number) * var(--pixel-size));
   grid-template-rows: calc(var(--frame-number) * var(--pixel-size)) var(--pixel-size) calc(var(--pixel-size) * var(--drawing-row-number));
-  grid-gap: 20px;
+  grid-gap: var(--weaving-grid-gap);
   grid-template-areas: 
     "threading-row-numbers generated-threading"
     ". guide-frame-numbers"
     "drawing-row-numbers drawing";
+  overflow: hidden;
 }
 
-.weaving > *:not(.generated-threading):not(.drawing) {
+.weaving > *:not(.generated-threading):not(.drawing):not(.guide-frame-number-style) {
   border: var(--border);
 }
 
@@ -103,6 +122,10 @@ button.pixel:hover {
 .drawing {
   grid-area: drawing;
   box-sizing: initial;
+}
+
+.drawing:not(:hover) ~ .guide-frame-number-style {
+  opacity: 0;
 }
 
 table {
