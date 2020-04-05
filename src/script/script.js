@@ -15,6 +15,7 @@ window.addEventListener('DOMContentLoaded', (event) => {
   var threading_row_numbers_el = document.querySelector('.js-threading-row-numbers');
   var drawing_row_numbers_el = document.querySelector('.js-drawing-row-numbers');
   var drawn_pixels = [];
+  var table_body_el = drawing_el.querySelector('tbody');
 
   // Définir le nombre de rangées du dessin
   // On va chercher dans le document le paramètre style 
@@ -44,7 +45,43 @@ window.addEventListener('DOMContentLoaded', (event) => {
     page_title.innerText = `${threadingType} sur ${frameNumber} cadres`;
   }
 
-  var createChildren = (parent, childrenType, childrenNumber, childrenClass) => {
+  var createPixelEl = () => {
+    var cell = document.createElement('td');
+    var button = document.createElement('button');
+    button.classList.add('pixel');
+    cell.appendChild(button);
+    return cell;
+  };
+
+  var updateDrawingRowNumber = (number) => {
+    for (let index = 0; index < number; index++) {
+      table_body_el.insertRow();
+    }
+  };
+
+  var fillDrawingRows = (frameNumber) => {
+    var frameNumberDelta = null;
+    var oldFrameNumber = table_body_el.childNodes[0].childNodes.length;
+    if (frameNumber > oldFrameNumber) {
+      frameNumberDelta = frameNumber - oldFrameNumber;
+      table_body_el.childNodes.forEach((el) => {
+        var pixels = new DocumentFragment();
+        for (let index = 0; index < frameNumberDelta; index++) {
+          pixels.appendChild(createPixelEl());
+        }
+        el.appendChild(pixels);
+      });
+    } else {
+      frameNumberDelta = oldFrameNumber - frameNumber;
+      table_body_el.childNodes.forEach((el) => {
+        for (let index = 0; index < frameNumberDelta; index++) {
+          el.removeChild(el.lastChild)
+        }
+      });
+    }
+  }
+
+  var createChildren = (parent, childrenNumber, childrenClass) => {
     // On vide le parent avant de le remplir
     parent.innerHTML = '';
     // On crée le groupe qui contiendra tous les enfants créés
@@ -53,9 +90,9 @@ window.addEventListener('DOMContentLoaded', (event) => {
     // qu'il y d'enfants à créer
     for (let index = 0; index < childrenNumber; index++) {
       //On créé une variable qui s'appelle child
-      // Elle stocke un élément html qui est défini  
-      // Par le paramétre childrenType
-      var child = document.createElement(childrenType);
+      // Elle stocke un élément html de type div 
+      // D'où les '' sinon JS va chercher la variable div
+      var child = document.createElement('div');
       //On appelle notre variable children (notre groupe)
       //On lui insére notre enfant child
       //Comme c'est dans une boucle, c'est répété x fois 
@@ -86,7 +123,6 @@ window.addEventListener('DOMContentLoaded', (event) => {
 
   var updateChildrenNumber = (parent, reversed) => {
     // Récupérer les enfants du parent
-    console.log(parent);
     // Pour chacun des enfants on veut modifier son contenu
     parent.childNodes.forEach((el, index) => {
       // Si le chiffre est inversé alors on fait ⬇️
@@ -99,45 +135,65 @@ window.addEventListener('DOMContentLoaded', (event) => {
     });
   }
 
+  var updateDrawing = () => {
+    console.log('update');
+    drawn_pixels.forEach((pixel) => {
+      pixel.el.classList.remove('is-selected');
+      console.log(pixel.el.classList.add('is-selected'));
+    });
+  };
 
   var updateWeaving = (value) => {
     updatePageTitle(value);
     updateGrid(value);
     updateFrameNumberText(value);
-    createChildren(threading_row_numbers_el, 'div', value, 'row-number');
-    createChildren(guide_frame_numbers_el, 'div', value, 'frame-number');
-    createChildren(drawing_row_numbers_el, 'div', drawing_row_number, 'row-number');
-    createChildren(threading_el, 'div', value * value, 'pixel');
-    createChildren(drawing_el, 'button', value * drawing_row_number, 'pixel');
+    createChildren(threading_row_numbers_el, value, 'row-number');
+    createChildren(guide_frame_numbers_el, value, 'frame-number');
+    createChildren(drawing_row_numbers_el, drawing_row_number, 'row-number');
+    createChildren(threading_el, value * value, 'pixel');
+    fillDrawingRows(value);
+    // updateDrawing();
     updateChildrenNumber(threading_row_numbers_el, true);
     updateChildrenNumber(drawing_row_numbers_el, true);
     updateChildrenNumber(guide_frame_numbers_el, false);
     styleThreadingPixels(value);
   }
 
+  updateDrawingRowNumber(drawing_row_number);
   updateWeaving(frame_number_el.value);
 
   frame_number_el.addEventListener('change', (e) => {
     updateWeaving(e.target.value);
   });
 
-  drawing_el.addEventListener('click', (e) => {
-    if (e.target.classList.contains('is-selected')) {
-      e.target.classList.remove('is-selected');
+  var updateDrawingPixelStyle = (pixel) => {
+    if (pixel.classList.contains('is-selected')) {
+      pixel.classList.remove('is-selected');
+    } else {
+      pixel.classList.add('is-selected');
+    }
+  };
+
+  var updateDrawingState = (pixelClicked) => {
+    var pixelIsSelected = drawn_pixels.find(pixel => pixel.el === pixelClicked);
+    if (pixelIsSelected !== undefined) {
       // ici le pixel (= e.target) sort du tableau stocké dans la variable drawn_pixel
-      var removed_element_index = drawn_pixels.indexOf(e.target);
-      if (removed_element_index > -1) {
-        drawn_pixels.splice(removed_element_index, 1);
-      }
+      drawn_pixels = drawn_pixels.filter((pixel) => {
+        return pixel.el !== pixelClicked;
+      });
     } else {
       // dans ces cas là le pixel est placé dans le tableau
-      e.target.classList.add('is-selected');
       var pixel = {
-        el: e.target,
-        x: Array.from(drawing_el.children).indexOf(e.target) ,
-        y: null,
+        el: pixelClicked,
+        x: pixelClicked.parentNode.cellIndex + 1,
+        y: drawing_row_number - pixelClicked.parentNode.parentNode.rowIndex,
       };
       drawn_pixels.push(pixel);
     }
+  };
+
+  drawing_el.addEventListener('click', (e) => {
+    updateDrawingState(e.target);
+    updateDrawingPixelStyle(e.target);
   });
 });
