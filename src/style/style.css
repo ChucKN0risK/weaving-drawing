@@ -32,6 +32,13 @@ h1 {
   transform: translateX(var(--guide-frame-number-position-x));
 }
 
+.guide-frame-number-y {
+  height: var(--pixel-size);
+  width: calc(var(--weaving-row-number-width) + var(--weaving-grid-gap) + calc(var(--frame-number) * var(--pixel-size)));
+  top: calc(var(--frame-number) * var(--pixel-size) + var(--weaving-grid-gap) * 2 + var(--pixel-size));
+  transform: translateY(var(--guide-frame-number-position-y));
+}
+
 .row-number {
   height: var(--pixel-size);
 }
@@ -63,7 +70,7 @@ h1 {
   overflow: hidden;
 }
 
-.weaving > *:not(.generated-threading):not(.drawing):not(.guide-frame-number-style) {
+.weaving > *:not(.generated-threading):not(.drawing):not(.guide-frame-number-style):not(.context-menu) {
   border: var(--border);
 }
 
@@ -108,7 +115,6 @@ h1 {
   border: none;
   border-top: var(--border);
   border-right: var(--border);
-  background-color: white;
 }
 
 button.pixel:hover {
@@ -131,14 +137,13 @@ button.pixel:hover {
 table {
   width:100%;
   grid-area: drawing;
-  border: none;
   border-collapse: collapse;
+  border-left: var(--border);
+  border-bottom: var(--border);
 }
 
 tbody {
   width: 100%;
-  border-left: var(--border);
-  border-bottom: var(--border);
 }
 
 tr {
@@ -157,8 +162,34 @@ td button {
   left: 0;
   width: var(--pixel-size);
   height: var(--pixel-size);
-  border: none;
   background-color: transparent;
-  border-top: var(--border);
-  border-right: var(--border);
+}
+
+.context-menu {
+  /* display: none; */
+  position: absolute;
+  left: calc(var(--weaving-row-number-width) + var(--weaving-grid-gap) + var(--pixel-size));
+  top: calc(var(--frame-number) * var(--pixel-size) + var(--weaving-grid-gap) * 2 + var(--pixel-size));
+  transform: translate(var(--menu-position-x), var(--menu-position-y));
+  z-index: 20;
+}
+
+.context-menu-item {
+  border-radius: 10px;
+  background-color: olive;
+  border: var(--border);
+}
+
+.context-menu-item:hover {
+  background-color: greenyellow;
+}
+
+.context-menu-item + .context-menu-item {
+  border-top: none;
+}
+
+.context-menu-item button {
+  width: 100%;
+  background-color: transparent;
+  border: none;
 }

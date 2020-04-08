@@ -15,6 +15,8 @@ window.addEventListener('DOMContentLoaded', (event) => {
   var threading_row_numbers_el = document.querySelector('.js-threading-row-numbers');
   var drawing_row_numbers_el = document.querySelector('.js-drawing-row-numbers');
   var table_body_el = drawing_el.querySelector('tbody');
+  var pixelPositionX = null;
+  var pixelPositionY = null;
 
   // Définir le nombre de rangées du dessin
   // On va chercher dans le document le paramètre style 
@@ -164,13 +166,26 @@ window.addEventListener('DOMContentLoaded', (event) => {
     }
   };
 
+  var setPixelPositionInDrawing = (e) => {
+    pixelPositionX = `${e.target.getBoundingClientRect().x - drawing_el.getBoundingClientRect().x}px`;
+    pixelPositionY = `${e.target.getBoundingClientRect().y - drawing_el.getBoundingClientRect().y}px`;
+  };
+
   drawing_el.addEventListener('click', (e) => {
     updateDrawingPixelStyle(e.target);
   });
 
   drawing_el.addEventListener('mouseover', (e) => {
-    var pixelPositionX = `${e.target.getBoundingClientRect().x - drawing_el.getBoundingClientRect().x}px`;
+    setPixelPositionInDrawing(e);
     document.documentElement.style.setProperty('--guide-frame-number-position-x', pixelPositionX);
-    console.log(`${e.target.getBoundingClientRect().x - drawing_el.getBoundingClientRect().x}px`);
+    document.documentElement.style.setProperty('--guide-frame-number-position-y', pixelPositionY);
   });
+
+  drawing_el.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    setPixelPositionInDrawing(e);
+    document.documentElement.style.setProperty('--menu-position-x', pixelPositionX);
+    document.documentElement.style.setProperty('--menu-position-y', pixelPositionY);
+  })
+
 });
