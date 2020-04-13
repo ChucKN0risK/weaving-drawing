@@ -10,13 +10,43 @@ window.addEventListener('DOMContentLoaded', (event) => {
   var frame_number_text = document.querySelector('.js-frame-number-text');
   var drawing_el = document.querySelector('.js-drawing');
   var page_title = document.querySelector('.js-page-title');
-  var drawing_row_number = 20;
+  var drawing_row_number = null;
   var guide_frame_numbers_el = document.querySelector('.js-guide-frame-numbers');
   var threading_row_numbers_el = document.querySelector('.js-threading-row-numbers');
   var drawing_row_numbers_el = document.querySelector('.js-drawing-row-numbers');
   var table_body_el = drawing_el.querySelector('tbody');
+  var context_menu_el = document.querySelector('.js-context-menu');
+  var context_menu_actions = {
+    single_row_actions: [
+      {
+        action: 'insert',
+        text: 'Insérer une ligne',
+      },
+      {
+        action: 'delete',
+        text: 'Supprimer une ligne',
+      },
+    ],
+    several_row_actions: [
+      {
+        action: 'insert-several',
+        text: 'Insérer XXXX lignes',
+      },
+      {
+        action: 'remove-several',
+        text: 'Supprimer XXXX lignes',
+      },
+    ]
+  };
   var pixelPositionX = null;
   var pixelPositionY = null;
+  var pixelRowIndex = null;
+  var insert_row_btn_el = document.querySelector('.js-insert-row-btn');
+  var delete_row_btn_el = document.querySelector('.js-delete-row-btn');
+  var drawingRowSelectionAllowed = null;
+  var drawingRowSelectionStartIndex = null;
+  var drawingRowSelectionEndIndex = null;
+  var selected_rows = [];
 
   // Définir le nombre de rangées du dessin
   // On va chercher dans le document le paramètre style 
@@ -25,12 +55,13 @@ window.addEventListener('DOMContentLoaded', (event) => {
   // Qui a comme valeur ce qui a comme paramètre de la fonction
   // Var set...=fonction; (...)=paramètre de la fonction
   var setDrawingRowNumber = (drawingRowNumber) => {
+    drawing_row_number = drawingRowNumber;
     document.documentElement.style.setProperty('--drawing-row-number', drawingRowNumber);
   };
 
   // On appelle la fonction
   // Sinon elle ne s'exécute pas
-  setDrawingRowNumber(drawing_row_number);
+  setDrawingRowNumber(20);
 
   var updateGrid = (frameNumber) => {
     document.documentElement.style.setProperty('--frame-number', frameNumber);
@@ -54,11 +85,38 @@ window.addEventListener('DOMContentLoaded', (event) => {
     return cell;
   };
 
+  var createContextMenuItem = (action, text) => {
+    var item = document.createElement('li');
+    item.classList.add('context-menu-item');
+    var button = document.createElement('button');
+    button.classList.add(`js-${action}-row-btn`);
+    button.textContent = text;
+    item.appendChild(button);
+    return item;
+  };
+
+  var fillContextMenu = (groupRowAction) => {
+    context_menu_el.innerHTML = '';
+    var actions = new DocumentFragment;
+    groupRowAction.forEach((el) => {
+      actions.appendChild(createContextMenuItem(el.action, el.text));
+    });
+    context_menu_el.appendChild(actions);
+  }
+
   var updateDrawingRowNumber = (number) => {
     for (let index = 0; index < number; index++) {
       table_body_el.insertRow();
     }
   };
+
+  var addPixelsInRow = (pixelsNumber, row) => {
+    var pixels = new DocumentFragment();
+    for (let index = 0; index < pixelsNumber; index++) {
+      pixels.appendChild(createPixelEl());
+    }
+    row.appendChild(pixels);
+  }
 
   var fillDrawingRows = (frameNumber) => {
     var frameNumberDelta = null;
@@ -66,11 +124,7 @@ window.addEventListener('DOMContentLoaded', (event) => {
     if (frameNumber > oldFrameNumber) {
       frameNumberDelta = frameNumber - oldFrameNumber;
       table_body_el.childNodes.forEach((el) => {
-        var pixels = new DocumentFragment();
-        for (let index = 0; index < frameNumberDelta; index++) {
-          pixels.appendChild(createPixelEl());
-        }
-        el.appendChild(pixels);
+        addPixelsInRow(frameNumberDelta, el);
       });
     } else {
       frameNumberDelta = oldFrameNumber - frameNumber;
@@ -166,9 +220,9 @@ window.addEventListener('DOMContentLoaded', (event) => {
     }
   };
 
-  var setPixelPositionInDrawing = (e) => {
-    pixelPositionX = `${e.target.getBoundingClientRect().x - drawing_el.getBoundingClientRect().x}px`;
-    pixelPositionY = `${e.target.getBoundingClientRect().y - drawing_el.getBoundingClientRect().y}px`;
+  var setPixelPositionInDrawing = (targetedPixel) => {
+    pixelPositionX = `${targetedPixel.getBoundingClientRect().x - drawing_el.getBoundingClientRect().x}px`;
+    pixelPositionY = `${targetedPixel.getBoundingClientRect().y - drawing_el.getBoundingClientRect().y}px`;
   };
 
   drawing_el.addEventListener('click', (e) => {
@@ -176,16 +230,86 @@ window.addEventListener('DOMContentLoaded', (event) => {
   });
 
   drawing_el.addEventListener('mouseover', (e) => {
-    setPixelPositionInDrawing(e);
+    setPixelPositionInDrawing(e.target);
     document.documentElement.style.setProperty('--guide-frame-number-position-x', pixelPositionX);
     document.documentElement.style.setProperty('--guide-frame-number-position-y', pixelPositionY);
   });
 
-  drawing_el.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-    setPixelPositionInDrawing(e);
+  var revealContextMenu = (targetedPixel) => {
+    context_menu_el.classList.remove('is-hidden');
+    setPixelPositionInDrawing(targetedPixel);
     document.documentElement.style.setProperty('--menu-position-x', pixelPositionX);
     document.documentElement.style.setProperty('--menu-position-y', pixelPositionY);
+  };
+
+  drawing_el.addEventListener('contextmenu', (e) => {
+    pixelRowIndex = e.target.closest('tr').rowIndex;
+    e.preventDefault();
+    fillContextMenu(context_menu_actions.single_row_actions);
+    revealContextMenu(e.target);
   })
+
+  document.addEventListener('click', (e) => {
+    var isContextMenuDisplayed = !context_menu_el.classList.contains('is-hidden');
+    var isContextMenuClicked = e.target.closest('.js-context-menu');
+    if (isContextMenuDisplayed && isContextMenuClicked === null) {
+      context_menu_el.classList.add('is-hidden');
+    }
+    if (selected_rows.length !== 0) {
+      selected_rows.forEach(el => el.classList.remove('is-selected'));
+      selected_rows = [];
+    }
+  });
+
+  var updateFullDrawing = (rowNumber) => {
+    setDrawingRowNumber(rowNumber);
+    createChildren(drawing_row_numbers_el, drawing_row_number, 'row-number');
+    updateChildrenNumber(drawing_row_numbers_el, true);
+  };
+
+
+  insert_row_btn_el.addEventListener('click', (e) => {
+    table_body_el.insertRow(pixelRowIndex);
+    addPixelsInRow(frame_number_el.value, table_body_el.childNodes[pixelRowIndex]);
+    updateFullDrawing(drawing_row_number + 1);
+    context_menu_el.classList.add('is-hidden');
+  });
+
+  delete_row_btn_el.addEventListener('click', (e) => {
+    table_body_el.deleteRow(pixelRowIndex);
+    updateFullDrawing(drawing_row_number - 1);
+    context_menu_el.classList.add('is-hidden');
+  });
+
+  drawing_el.addEventListener('mousedown', (e) => {
+    drawingRowSelectionAllowed = true;
+    drawingRowSelectionStartIndex = e.target.closest('tr').rowIndex;
+  });
+
+  drawing_el.addEventListener('mouseover', (e) => {
+    if (drawingRowSelectionAllowed) {
+      drawingRowSelectionEndIndex = e.target.closest('tr').rowIndex;
+      selected_rows = Array.from(table_body_el.childNodes).filter((el) => {
+        if (
+          (el.rowIndex >= drawingRowSelectionStartIndex && el.rowIndex <= drawingRowSelectionEndIndex)
+          || (el.rowIndex <= drawingRowSelectionStartIndex && el.rowIndex >= drawingRowSelectionEndIndex)
+        ) {
+          return el;
+        }
+      });
+      selected_rows.forEach(el => el.classList.add('is-selected'));
+    }
+  });
+
+  drawing_el.addEventListener('mouseup', (e) => {
+    if (drawingRowSelectionAllowed) {
+      drawingRowSelectionAllowed = false;
+      revealContextMenu(e.target);
+      if (selected_rows.length !== 0) {
+        fillContextMenu(context_menu_actions.several_row_actions);
+      }
+    }
+  });
+
 
 });

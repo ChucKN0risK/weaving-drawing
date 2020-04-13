@@ -3,7 +3,8 @@
   --border: solid black 1px;
   --weaving-row-number-width: 60px;
   --weaving-grid-gap: 20px;
-  --background-frame-number-guide: rgba(68, 134, 154, 0.29);
+  --background-frame-number-guide: rgba(248, 137, 19, 0.34);
+  --background-selected-rows: rgba(87, 110, 187, 0.34);
 }
 
 html {
@@ -150,6 +151,10 @@ tr {
   height: var(--pixel-size);
 }
 
+tr.is-selected {
+  background-color: var(--background-selected-rows);
+}
+
 td {
   position: relative;
   width: var(--pixel-size);
@@ -166,7 +171,6 @@ td button {
 }
 
 .context-menu {
-  /* display: none; */
   position: absolute;
   left: calc(var(--weaving-row-number-width) + var(--weaving-grid-gap) + var(--pixel-size));
   top: calc(var(--frame-number) * var(--pixel-size) + var(--weaving-grid-gap) * 2 + var(--pixel-size));
@@ -174,9 +178,13 @@ td button {
   z-index: 20;
 }
 
+.is-hidden {
+  display: none;
+}
+
 .context-menu-item {
   border-radius: 10px;
-  background-color: olive;
+  background-color: #dac2fe;
   border: var(--border);
 }
 
