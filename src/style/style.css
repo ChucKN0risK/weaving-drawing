@@ -109,6 +109,9 @@ h1 {
 
 .drawing-row-numbers {
   grid-area: drawing-row-numbers;
+  display: flex;
+  flex-direction: column;
+  flex-flow: column-reverse;
   text-align: center;
 }
 

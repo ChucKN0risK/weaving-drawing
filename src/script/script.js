@@ -1,6 +1,5 @@
 window.addEventListener('DOMContentLoaded', (event) => {
-  var message = 'coucou amour ❤️'
-  console.log(message);
+  console.log('coucou amour ❤️');
 
   // On récupère l'élément HTML de l'input et on le stocke dans une
   // variable qu'on appelle frame_number_el. Cette variable sera utilisée
@@ -16,33 +15,10 @@ window.addEventListener('DOMContentLoaded', (event) => {
   var drawing_row_numbers_el = document.querySelector('.js-drawing-row-numbers');
   var table_body_el = drawing_el.querySelector('tbody');
   var context_menu_el = document.querySelector('.js-context-menu');
-  var context_menu_actions = {
-    single_row_actions: [
-      {
-        action: 'insert',
-        text: 'Insérer une ligne',
-      },
-      {
-        action: 'delete',
-        text: 'Supprimer une ligne',
-      },
-    ],
-    several_row_actions: [
-      {
-        action: 'insert-several',
-        text: 'Insérer XXXX lignes',
-      },
-      {
-        action: 'remove-several',
-        text: 'Supprimer XXXX lignes',
-      },
-    ]
-  };
+  var currentRow = null;
   var pixelPositionX = null;
   var pixelPositionY = null;
   var pixelRowIndex = null;
-  var insert_row_btn_el = document.querySelector('.js-insert-row-btn');
-  var delete_row_btn_el = document.querySelector('.js-delete-row-btn');
   var drawingRowSelectionAllowed = null;
   var drawingRowSelectionStartIndex = null;
   var drawingRowSelectionEndIndex = null;
@@ -89,8 +65,8 @@ window.addEventListener('DOMContentLoaded', (event) => {
     var item = document.createElement('li');
     item.classList.add('context-menu-item');
     var button = document.createElement('button');
-    button.classList.add(`js-${action}-row-btn`);
-    button.textContent = text;
+    button.addEventListener('click', action);
+    button.textContent = text();
     item.appendChild(button);
     return item;
   };
@@ -205,13 +181,6 @@ window.addEventListener('DOMContentLoaded', (event) => {
     styleThreadingPixels(value);
   }
 
-  updateDrawingRowNumber(drawing_row_number);
-  updateWeaving(frame_number_el.value);
-
-  frame_number_el.addEventListener('change', (e) => {
-    updateWeaving(e.target.value);
-  });
-
   var updateDrawingPixelStyle = (pixel) => {
     if (pixel.classList.contains('is-selected')) {
       pixel.classList.remove('is-selected');
@@ -225,6 +194,92 @@ window.addEventListener('DOMContentLoaded', (event) => {
     pixelPositionY = `${targetedPixel.getBoundingClientRect().y - drawing_el.getBoundingClientRect().y}px`;
   };
 
+  var revealContextMenu = (targetedRow) => {
+    context_menu_el.classList.remove('is-hidden');
+    var lastPixel = targetedRow.childNodes[targetedRow.childNodes.length -1];
+    setPixelPositionInDrawing(lastPixel);
+    document.documentElement.style.setProperty('--menu-position-x', pixelPositionX);
+    document.documentElement.style.setProperty('--menu-position-y', pixelPositionY);
+  };
+
+  var hideContextMenu = () => {
+    context_menu_el.classList.add('is-hidden');
+  };
+
+  var unselectDrawingRows = () => {
+    if (selected_rows.length !== 0) {
+      selected_rows.forEach(el => el.classList.remove('is-selected'));
+      selected_rows = [];
+    }
+  };
+
+  var updateFullDrawing = (rowNumber) => {
+    setDrawingRowNumber(rowNumber);
+    createChildren(drawing_row_numbers_el, drawing_row_number, 'row-number');
+    updateChildrenNumber(drawing_row_numbers_el, true);
+  };
+
+  var insertRowInDrawing = () => {
+    table_body_el.insertRow(pixelRowIndex);
+    addPixelsInRow(frame_number_el.value, table_body_el.childNodes[pixelRowIndex]);
+    updateFullDrawing(drawing_row_number + 1);
+  };
+
+  var insertSeveralRows = () => {
+    for (let index = 0; index < getSelectedRowNumber(); index++) {
+      insertRowInDrawing();
+    }
+  };
+
+  var deleteSeveralRows = () => {
+    for (let index = 0; index < getSelectedRowNumber(); index++) {
+      deleteRowInDrawing();
+    }
+  };
+
+  var deleteRowInDrawing = () => {
+    table_body_el.deleteRow(pixelRowIndex);
+    updateFullDrawing(drawing_row_number - 1);
+  };
+
+  var getSelectedRowNumber = () => {
+    return selected_rows.length;
+  }
+
+  var setPixelRowIndex = (e) => {
+    return pixelRowIndex = e.target.closest('tr').rowIndex;
+  };
+
+  var context_menu_actions = {
+    single_row_actions: [
+      {
+        action: () => insertRowInDrawing(),
+        text: () => 'Insérer une ligne',
+      },
+      {
+        action: () => deleteRowInDrawing(),
+        text: () => 'Supprimer une ligne',
+      },
+    ],
+    several_row_actions: [
+      {
+        action: () => insertSeveralRows(),
+        text: () => `Insérer ${getSelectedRowNumber()} lignes`,
+      },
+      {
+        action: () => deleteSeveralRows(),
+        text: () => `Supprimer ${getSelectedRowNumber()} lignes`,
+      },
+    ],
+  };
+
+  updateDrawingRowNumber(drawing_row_number);
+  updateWeaving(frame_number_el.value);
+
+  frame_number_el.addEventListener('change', (e) => {
+    updateWeaving(e.target.value);
+  });
+
   drawing_el.addEventListener('click', (e) => {
     updateDrawingPixelStyle(e.target);
   });
@@ -235,61 +290,51 @@ window.addEventListener('DOMContentLoaded', (event) => {
     document.documentElement.style.setProperty('--guide-frame-number-position-y', pixelPositionY);
   });
 
-  var revealContextMenu = (targetedPixel) => {
-    context_menu_el.classList.remove('is-hidden');
-    setPixelPositionInDrawing(targetedPixel);
-    document.documentElement.style.setProperty('--menu-position-x', pixelPositionX);
-    document.documentElement.style.setProperty('--menu-position-y', pixelPositionY);
-  };
-
   drawing_el.addEventListener('contextmenu', (e) => {
-    pixelRowIndex = e.target.closest('tr').rowIndex;
+    setPixelRowIndex(e);
     e.preventDefault();
     fillContextMenu(context_menu_actions.single_row_actions);
-    revealContextMenu(e.target);
+    currentRow = e.target.closest('tr');
+    Array.from(table_body_el.childNodes).forEach((el) => {
+      el.classList.remove('is-selected');
+    });
+    currentRow.classList.add('is-selected');
+    revealContextMenu(currentRow);
   })
 
   document.addEventListener('click', (e) => {
     var isContextMenuDisplayed = !context_menu_el.classList.contains('is-hidden');
     var isContextMenuClicked = e.target.closest('.js-context-menu');
     if (isContextMenuDisplayed && isContextMenuClicked === null) {
-      context_menu_el.classList.add('is-hidden');
+      hideContextMenu();
     }
-    if (selected_rows.length !== 0) {
-      selected_rows.forEach(el => el.classList.remove('is-selected'));
-      selected_rows = [];
+    if (currentRow) {
+      currentRow.classList.remove('is-selected');
     }
+    unselectDrawingRows();
   });
 
-  var updateFullDrawing = (rowNumber) => {
-    setDrawingRowNumber(rowNumber);
-    createChildren(drawing_row_numbers_el, drawing_row_number, 'row-number');
-    updateChildrenNumber(drawing_row_numbers_el, true);
-  };
-
-
-  insert_row_btn_el.addEventListener('click', (e) => {
-    table_body_el.insertRow(pixelRowIndex);
-    addPixelsInRow(frame_number_el.value, table_body_el.childNodes[pixelRowIndex]);
-    updateFullDrawing(drawing_row_number + 1);
-    context_menu_el.classList.add('is-hidden');
-  });
-
-  delete_row_btn_el.addEventListener('click', (e) => {
-    table_body_el.deleteRow(pixelRowIndex);
-    updateFullDrawing(drawing_row_number - 1);
-    context_menu_el.classList.add('is-hidden');
+  context_menu_el.addEventListener('click', () => {
+    hideContextMenu();
+    currentRow.classList.remove('is-selected');
   });
 
   drawing_el.addEventListener('mousedown', (e) => {
-    drawingRowSelectionAllowed = true;
-    drawingRowSelectionStartIndex = e.target.closest('tr').rowIndex;
+    if (e.which === 1) {
+      unselectDrawingRows();
+      hideContextMenu();
+      drawingRowSelectionAllowed = true;
+      drawingRowSelectionStartIndex = e.target.closest('tr').rowIndex;
+    }
   });
 
   drawing_el.addEventListener('mouseover', (e) => {
     if (drawingRowSelectionAllowed) {
-      drawingRowSelectionEndIndex = e.target.closest('tr').rowIndex;
-      selected_rows = Array.from(table_body_el.childNodes).filter((el) => {
+      var drawingRowsElements = Array.from(table_body_el.childNodes);
+      if (e.target.closest('tr')) {
+        drawingRowSelectionEndIndex = e.target.closest('tr').rowIndex;
+      }
+      selected_rows = drawingRowsElements.filter((el) => {
         if (
           (el.rowIndex >= drawingRowSelectionStartIndex && el.rowIndex <= drawingRowSelectionEndIndex)
           || (el.rowIndex <= drawingRowSelectionStartIndex && el.rowIndex >= drawingRowSelectionEndIndex)
@@ -297,19 +342,36 @@ window.addEventListener('DOMContentLoaded', (event) => {
           return el;
         }
       });
-      selected_rows.forEach(el => el.classList.add('is-selected'));
+      drawingRowsElements.forEach(el => {
+        if (selected_rows.includes(el)) {
+          el.classList.add('is-selected');
+        } else {
+          el.classList.remove('is-selected');
+        }
+      });
     }
   });
 
-  drawing_el.addEventListener('mouseup', (e) => {
+  drawing_el.addEventListener('mouseleave', (e) => {
     if (drawingRowSelectionAllowed) {
       drawingRowSelectionAllowed = false;
-      revealContextMenu(e.target);
+      var lastSelectedRow = table_body_el.childNodes[drawingRowSelectionEndIndex];
+      revealContextMenu(lastSelectedRow);
       if (selected_rows.length !== 0) {
         fillContextMenu(context_menu_actions.several_row_actions);
       }
     }
   });
 
-
+  drawing_el.addEventListener('mouseup', (e) => {
+    if (drawingRowSelectionAllowed && drawingRowSelectionEndIndex) {
+      setPixelRowIndex(e);
+      drawingRowSelectionAllowed = false;
+      var lastSelectedRow = table_body_el.childNodes[drawingRowSelectionEndIndex];
+      revealContextMenu(lastSelectedRow);
+      if (selected_rows.length !== 0) {
+        fillContextMenu(context_menu_actions.several_row_actions);
+      }
+    }
+  });
 });
